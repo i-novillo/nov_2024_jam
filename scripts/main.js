@@ -7,6 +7,9 @@ class Main extends Phaser.Scene
     player;
     playerBullets;
     enemies;
+    gameOver = false;
+    isShooting;
+    shootTimer;
 
     preload ()
     {
@@ -34,19 +37,31 @@ class Main extends Phaser.Scene
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        this.input.on('pointerdown', (pointer) =>
-            {
-                if (this.player.active === false) { return; }
+        this.isShooting = false;
+        this.shootTimer = null;
+
+        this.input.on('pointerdown', (pointer) => {
+            if (this.player.active === false || this.isShooting) { return; }
+            this.isShooting = true;
     
-                // Get bullet from bullets group
-                const bullet = this.playerBullets.get().setActive(true).setVisible(true);
-    
-                if (bullet)
-                {
-                    bullet.fire(this.player, pointer);
-                    //this.physics.add.collider(this.enemy, bullet, (enemyHit, bulletHit) => this.enemyHitCallback(enemyHit, bulletHit));
-                }
+            // Start firing bullets continuously
+            this.shootTimer = this.time.addEvent({
+                delay: 100, // Fire every 200ms (adjust for fire rate)
+                callback: () => {
+                    this.fireBullet(pointer);
+                },
+                callbackScope: this,
+                loop: true
             });
+        });
+    
+        // Pointer up: Stop firing bullets
+        this.input.on('pointerup', () => {
+            this.isShooting = false;
+            if (this.shootTimer) {
+                this.shootTimer.remove(); // Stop the shooting loop
+            }
+        });
 
         this.enemies = this.physics.add.group({
             classType: Enemy, 
@@ -56,6 +71,10 @@ class Main extends Phaser.Scene
         this.spawnEnemy(100, 50, 'default');
         this.spawnEnemy(0, 0, 'fast');
         this.spawnEnemy(700, 500, 'doubler');
+
+        this.physics.add.collider(this.player, this.enemies, this.playerHitCallback, null, this);
+        this.physics.add.overlap(this.playerBullets, this.enemies, this.enemyHitCallback, null, this);
+
     }
 
     spawnEnemy(x, y, type) {
@@ -63,8 +82,39 @@ class Main extends Phaser.Scene
         this.enemies.add(enemy);
     }
 
+    fireBullet(pointer) {
+        const bullet = this.playerBullets.get().setActive(true).setVisible(true);
+    
+        if (bullet) {
+            bullet.fire(this.player, pointer);
+        }
+    }
+
+    playerHitCallback() {
+        this.physics.pause();
+
+        this.player.setTint(0xff0000);
+        this.player.active = false
+        
+        this.gameOver = true;
+    }
+
+    enemyHitCallback(bullet, enemy) {
+        if (bullet.active === true && enemy.active === true)
+            {
+                bullet.targetHit();
+                enemy.takeDamage(50);
+        }
+            
+    }
+
     update (time, delta)
     {
+        if (this.gameOver)
+        {
+            return;
+        }
+
         this.player.setVelocity(0);
 
         if (this.moveKeys.left.isDown)

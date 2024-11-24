@@ -3,7 +3,7 @@ export class Bullet extends Phaser.GameObjects.Image
     constructor (scene)
     {
         super(scene, 0, 0, 'bullet');
-        this.speed = 700;
+        this.speed = 900;
         this.born = 0;
         this.direction = new Phaser.Math.Vector2(0, 0);
         this.xSpeed = 0;
@@ -30,6 +30,11 @@ export class Bullet extends Phaser.GameObjects.Image
 
         this.rotation = Math.atan((target.y - this.y) / (target.x - this.y));
         this.born = 0;
+    }
+
+    targetHit() {
+        this.setActive(false);
+        this.setVisible(false);
     }
 
     update(time, delta)
