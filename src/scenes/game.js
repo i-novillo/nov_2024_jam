@@ -1,7 +1,7 @@
-import {Bullet} from './bullet.js';
-import {Enemy} from './enemy.js';
+import {Bullet} from '../entities/bullet.js';
+import {Enemy} from '../entities/enemy.js';
 
-class Main extends Phaser.Scene
+export class Game extends Phaser.Scene
 {
     moveKeys;
     player;
@@ -10,6 +10,10 @@ class Main extends Phaser.Scene
     gameOver = false;
     isShooting;
     shootTimer;
+
+    constructor() {
+        super("game")
+    }
 
     preload ()
     {
@@ -77,37 +81,6 @@ class Main extends Phaser.Scene
 
     }
 
-    spawnEnemy(x, y, type) {
-        const enemy = new Enemy(this, x, y, type);
-        this.enemies.add(enemy);
-    }
-
-    fireBullet(pointer) {
-        const bullet = this.playerBullets.get().setActive(true).setVisible(true);
-    
-        if (bullet) {
-            bullet.fire(this.player, pointer);
-        }
-    }
-
-    playerHitCallback() {
-        this.physics.pause();
-
-        this.player.setTint(0xff0000);
-        this.player.active = false
-        
-        this.gameOver = true;
-    }
-
-    enemyHitCallback(bullet, enemy) {
-        if (bullet.active === true && enemy.active === true)
-            {
-                bullet.targetHit();
-                enemy.takeDamage(50);
-        }
-            
-    }
-
     update (time, delta)
     {
         if (this.gameOver)
@@ -141,20 +114,35 @@ class Main extends Phaser.Scene
             }
         });
     }
-}
 
-const config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 0 },
-            debug: false
+    spawnEnemy(x, y, type) {
+        const enemy = new Enemy(this, x, y, type);
+        this.enemies.add(enemy);
+    }
+
+    fireBullet(pointer) {
+        const bullet = this.playerBullets.get().setActive(true).setVisible(true);
+    
+        if (bullet) {
+            bullet.fire(this.player, pointer);
         }
-    },
-    scene: Main
-};
+    }
 
-const game = new Phaser.Game(config);
+    playerHitCallback() {
+        this.physics.pause();
+
+        this.player.setTint(0xff0000);
+        this.player.active = false
+        
+        this.gameOver = true;
+    }
+
+    enemyHitCallback(bullet, enemy) {
+        if (bullet.active === true && enemy.active === true)
+            {
+                bullet.targetHit();
+                enemy.takeDamage(50);
+        }
+            
+    }
+}
