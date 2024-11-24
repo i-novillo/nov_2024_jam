@@ -56,7 +56,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite
     update(time, delta) {
         const player = this.scene.player;
 
-        if (this.alive) {
+        if (this.alive && this.scene.gameStarted) {
             const direction = Math.atan((player.x - this.x) / (player.y - this.y));
     
             let xSpeed, ySpeed;

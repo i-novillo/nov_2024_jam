@@ -1,15 +1,20 @@
-import {Bullet} from './bullet.js';
-import {Enemy} from './enemy.js';
+import {Bullet} from '../entities/bullet.js';
+import {Enemy} from '../entities/enemy.js';
 
-class Main extends Phaser.Scene
+export class Game extends Phaser.Scene
 {
     moveKeys;
     player;
     playerBullets;
     enemies;
     gameOver = false;
+    gameStarted = false;
     isShooting;
     shootTimer;
+
+    constructor() {
+        super("game")
+    }
 
     preload ()
     {
@@ -21,7 +26,7 @@ class Main extends Phaser.Scene
         this.load.image('doubler', 'assets/enemy_3.png');
     }
 
-    create ()
+    create (data)
     {
         this.add.image(400, 300, 'background');
 
@@ -40,8 +45,27 @@ class Main extends Phaser.Scene
         this.isShooting = false;
         this.shootTimer = null;
 
+        this.countdownValue = 3; // Start from 3 seconds
+        this.countdownText = this.add.text(400, 300, this.countdownValue, {
+            fontFamily: '"Press Start 2P", Arial',
+            fontSize: '100px',
+            fill: '#ffcc00',
+            stroke: '#000',
+            strokeThickness: 6,
+            shadow: {
+                offsetX: 4,
+                offsetY: 4,
+                color: '#333',
+                blur: 4,
+                stroke: true,
+                fill: true,
+            },
+        }).setOrigin(0.5, 0.5); 
+
+        this.startCountdown();
+
         this.input.on('pointerdown', (pointer) => {
-            if (this.player.active === false || this.isShooting) { return; }
+            if (!this.player.active || this.isShooting || !this.gameStarted) { return; }
             this.isShooting = true;
     
             // Start firing bullets continuously
@@ -69,12 +93,72 @@ class Main extends Phaser.Scene
         });
 
         this.spawnEnemy(100, 50, 'default');
-        this.spawnEnemy(0, 0, 'fast');
-        this.spawnEnemy(700, 500, 'doubler');
+        if (data.difficulty === 'medium' || data.difficulty === 'hard') {
+            this.spawnEnemy(0, 0, 'fast');
+        }
+
+        if (data.difficulty === 'hard') {
+            this.spawnEnemy(700, 500, 'doubler');
+        }
 
         this.physics.add.collider(this.player, this.enemies, this.playerHitCallback, null, this);
         this.physics.add.overlap(this.playerBullets, this.enemies, this.enemyHitCallback, null, this);
+    }
 
+    startCountdown() {
+        this.time.addEvent({
+            delay: 1000,
+            callback: this.updateCountdown,
+            callbackScope: this,
+            loop: true,
+        });
+    }
+
+    updateCountdown() {
+        this.countdownValue -= 1;
+        this.countdownText.setText(this.countdownValue); 
+
+        if (this.countdownValue === 0) {
+            this.countdownText.setText('Go!');
+            this.time.addEvent({
+                delay: 500, 
+                callback: this.startGame,
+                callbackScope: this,
+            });
+        }
+    }
+
+    startGame() {
+        this.countdownText.setVisible(false); 
+        this.gameStarted = true; 
+        this.player.setActive(true).setVisible(true);
+    }
+
+    update (time, delta)
+    {
+        if (this.gameOver || !this.gameStarted)
+        {
+            return;
+        }
+
+        this.player.setVelocity(0);
+        if (this.moveKeys.left.isDown){
+            this.player.setVelocityX(-200);
+        } else if (this.moveKeys.right.isDown) {
+            this.player.setVelocityX(200);
+        }
+        
+        if (this.moveKeys.up.isDown) {
+            this.player.setVelocityY(-200);
+        } else if (this.moveKeys.down.isDown) {
+            this.player.setVelocityY(200);
+        }
+
+        this.enemies.children.entries.forEach((enemy) => {
+            if (enemy.active) {
+                //enemy.update(time, delta, this.player);
+            }
+        });
     }
 
     spawnEnemy(x, y, type) {
@@ -107,54 +191,4 @@ class Main extends Phaser.Scene
         }
             
     }
-
-    update (time, delta)
-    {
-        if (this.gameOver)
-        {
-            return;
-        }
-
-        this.player.setVelocity(0);
-
-        if (this.moveKeys.left.isDown)
-        {
-            this.player.setVelocityX(-200);
-        } 
-        else if (this.moveKeys.right.isDown)
-        {
-            this.player.setVelocityX(200);
-        }
-        
-        if (this.moveKeys.up.isDown)
-        {
-            this.player.setVelocityY(-200);
-        }
-        else if (this.moveKeys.down.isDown)
-        {
-            this.player.setVelocityY(200);
-        }
-
-        this.enemies.children.entries.forEach((enemy) => {
-            if (enemy.active) {
-                enemy.update(time, delta, this.player);
-            }
-        });
-    }
 }
-
-const config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 0 },
-            debug: false
-        }
-    },
-    scene: Main
-};
-
-const game = new Phaser.Game(config);
